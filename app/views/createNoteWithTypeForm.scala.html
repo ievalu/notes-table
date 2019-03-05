@@ -1,0 +1,30 @@
+@(noteForm: Form[NoteWithTypes], types: Seq[(String, String, String)])(implicit messages: Messages, request: RequestHeader)
+
+@import helper._
+
+@implicitFieldConstructor = @{ FieldConstructor(twitterBootstrapInput.f) }
+
+@main {
+
+<h1>Add a note</h1>
+
+@form(routes.Application.saveNoteWithType(), 'enctype -> "multipart/form-data") {
+
+<fieldset>
+
+    @inputText(noteForm("text"), '_label -> "Your note")
+
+    @select(noteForm("types"), Seq("1" -> "work", "2" -> "uni", "3" -> "home", "4" -> "friends"), 'multiple -> true)
+
+    <input type="file" name="noteFile">
+
+</fieldset>
+
+<div class="actions">
+    <input type="submit" value="Create note" class="btn primary"> or
+    <a href="@routes.Application.listNotesWithTypes()" class="btn">Cancel</a>
+</div>
+
+}
+
+}

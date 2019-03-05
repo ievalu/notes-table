@@ -1,0 +1,36 @@
+@(noteForm: Form[Note], colors: Seq[(String, String)])(implicit messages: Messages, request: RequestHeader)
+
+@import helper._
+
+@implicitFieldConstructor = @{ FieldConstructor(twitterBootstrapInput.f) }
+
+@main {
+
+<h1>Add a note</h1>
+
+@form(routes.Application.saveNote()) {
+
+<fieldset>
+
+    @inputText(noteForm("text"), '_label -> "Your note")
+
+    @select(
+        noteForm("color"),
+        colors,
+        '_label -> "Color", '_default -> "-- Choose a color --",
+        '_showConstraints -> false,
+        '_name -> "color"
+    )
+
+    Color: <input class="jscolor {hash:true}" value="@noteForm("color")" name="color">
+
+</fieldset>
+
+<div class="actions">
+    <input type="submit" value="Create note" class="btn primary" id="submit-button"> or
+    <a href="@routes.Application.listNotes()" class="btn">Cancel</a>
+</div>
+
+}
+
+}
