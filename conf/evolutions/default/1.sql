@@ -25,7 +25,8 @@ CREATE TABLE "COLOR"(
 CREATE TABLE "NOTE"(
     "id" bigserial NOT NULL,
     "text" text NOT NULL,
-    "color" bigint NOT NULL,
+    "color" text NOT NULL,
+    "fileName" text,
     PRIMARY KEY ("id")
 );
 
@@ -661,18 +662,18 @@ INSERT INTO "COMPUTER" ("ID", "NAME", "INTRODUCED", "DISCONTINUED", "COMPANY_ID"
 INSERT INTO "COMPUTER" ("ID", "NAME", "INTRODUCED", "DISCONTINUED", "COMPANY_ID") VALUES ('573', 'Gateway LT3103U', '2008-01-01', NULL, NULL);
 INSERT INTO "COMPUTER" ("ID", "NAME", "INTRODUCED", "DISCONTINUED", "COMPANY_ID") VALUES ('574', 'iPhone 4S', '2011-10-14', NULL, '1');
 
-INSERT INTO "NOTE"("text", "color") VALUES ('Hello', '1');
-INSERT INTO "NOTE"("text", "color") VALUES ('Hi', '3');
-INSERT INTO "NOTE"("text", "color") VALUES ('My name is Ieva', '2');
-INSERT INTO "NOTE"("text", "color") VALUES ('Clean your room', '1');
-INSERT INTO "NOTE"("text", "color") VALUES ('Do homework', '4');
-INSERT INTO "NOTE"("text", "color") VALUES ('Gain weight', '2');
-INSERT INTO "NOTE"("text", "color") VALUES ('Go to the gym', '3');
-INSERT INTO "NOTE"("text", "color") VALUES ('Visit Switzerland', '4');
-INSERT INTO "NOTE"("text", "color") VALUES ('Watch Eurovision', '1');
-INSERT INTO "NOTE"("text", "color") VALUES ('Sleep', '3');
-INSERT INTO "NOTE"("text", "color") VALUES ('This is it', '2');
-INSERT INTO "NOTE"("text", "color") VALUES ('Bohemian Rhapsody', '1');
+INSERT INTO "NOTE"("text", "color") VALUES ('Hello', '#f1d6c0');
+INSERT INTO "NOTE"("text", "color") VALUES ('Hi', '#e3c1f2');
+INSERT INTO "NOTE"("text", "color") VALUES ('My name is Ieva', '#769ddb');
+INSERT INTO "NOTE"("text", "color") VALUES ('Clean your room', '#f1d6c0');
+INSERT INTO "NOTE"("text", "color") VALUES ('Do homework', '#acf9d8');
+INSERT INTO "NOTE"("text", "color") VALUES ('Gain weight', '#769ddb');
+INSERT INTO "NOTE"("text", "color") VALUES ('Go to the gym', '#e3c1f2');
+INSERT INTO "NOTE"("text", "color") VALUES ('Visit Switzerland', '#acf9d8');
+INSERT INTO "NOTE"("text", "color") VALUES ('Watch Eurovision', '#f1d6c0');
+INSERT INTO "NOTE"("text", "color") VALUES ('Sleep', '#e3c1f2');
+INSERT INTO "NOTE"("text", "color") VALUES ('This is it', '#769ddb');
+INSERT INTO "NOTE"("text", "color") VALUES ('Bohemian Rhapsody', '#f1d6c0');
 
 INSERT INTO "COLOR"("code", "name") VALUES ('#f1d6c0', 'orange');
 INSERT INTO "COLOR"("code", "name") VALUES ('#769ddb', 'blue');

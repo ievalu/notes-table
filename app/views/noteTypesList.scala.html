@@ -23,72 +23,101 @@ if(orderBy == scala.math.abs(currentOrderBy)) -currentOrderBy else orderBy
 
 @main {
 
-<div id="actions">
-    @helper.form(action=routes.Application.listNotesWithTypes()) {
-        <input type="search" id="searchbox" name="text" value="@currentTextFilter" placeholder="Filter by note text..."/>
-        <select name="f" size="4" multiple>
-            @typeOptions.map{ case (id, text, _) =>  {
-                <option value="@id" @if(currentFilter.contains(id.toLong)){selected} >@text</option>
-            }}
-        </select>
-        <input type="submit" id="searchsubmit" value="Filter" class="btn primary"/>
-    }
+    <span>@flash.get("message")</span>
 
-    <a class="btn success" id="add" href="@routes.Application.createNoteWithType()">Add a new note</a>
-</div>
+    <div id="actions">
+        @helper.form(action=routes.Application.listNotesWithTypes()) {
+            <input type="search" id="searchbox" name="text" value="@currentTextFilter" placeholder="Filter by note text..."/>
+            <select name="f" size="4" multiple>
+                @typeOptions.map{ case (id, text, _) =>  {
+                    <option value="@id" @if(currentFilter.contains(id.toLong)){selected} >@text</option>
+                }}
+            </select>
+            <input type="submit" id="searchsubmit" value="Filter" class="btn primary"/>
+        }
 
-<table class="computers zebra-striped">
-    <thead>
-    <tr>
-        @header(2, "Note")
-        @header(3, "Types")
-    </tr>
-    </thead>
-    <tbody>
+        <a class="btn success" id="add" href="@routes.Application.createNoteWithType()">Add a new note</a>
+    </div>
 
-    @currentPage.items.map {
-        case (note, types) => {
+    <div class="container">
+
+    </div>
+
+    <table class="computers zebra-striped">
+        <thead>
             <tr>
-                <td>@note.text</td>
-                @if(types(0) == null) {
-                    <td></td>
-                }else{
+                @header(2, "Note")
+                @header(3, "Types")
+                @header(4, "File")
+                @header(5, "Update/Delete")
+            </tr>
+        </thead>
+        <tbody>
+
+        @currentPage.items.map {
+            case (note, types) => {
+                <tr>
+                    <td>@note.text</td>
+                    @if(types(0) == null) {
+                        <td></td>
+                    }else{
+                        <td>
+                            @for(t <- types) {
+                                <span style = "background-color: @t._2"> @t._1  </span>
+                            }
+                        </td>
+                    }
                     <td>
-                        @for(t <- types){
-                            <span style = "background-color: @t._2"> @t._1  </span>
+                        @note.fileName.map { n =>
+                            <a href="@routes.Application.downloadFile(note.id)" download>
+                                @n
+                            </a>
+                        }.getOrElse {
+                            <span></span>
                         }
                     </td>
-                }
-            </tr>
+                    <td>
+                        @form(routes.Application.archiveNote(note.id)) {
+                            <button type="submit" value="Archive note" style="background-color: transparent">
+                                <i class="fas fa-trash" style="padding: 5px"></i>
+                            </button>
+                        }
+                        @form(routes.Application.editNote(note.id)) {
+                            <button type="submit" value="Edit note" style="background-color: transparent">
+                                <i class="far fa-edit" style="padding: 5px"></i>
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
         }
-    }
 
-    </tbody>
-</table>
+        </tbody>
+    </table>
 
-<div id="pagination" class="pagination">
-    <ul>
-        @currentPage.prev.map { page =>
-        <li class="prev">
-            <a href="@link(page)">&larr; Previous</a>
-        </li>
-        }.getOrElse {
-        <li class="prev disabled">
-            <a>&larr; Previous</a>
-        </li>
-        }
-        <li class="current">
-            <a>Displaying @(currentPage.offset + 1) to @(currentPage.offset + currentPage.items.size) of @currentPage.total</a>
-        </li>
-        @currentPage.next.map { page =>
-        <li class="next">
-            <a href="@link(page)">Next &rarr;</a>
-        </li>
-        }.getOrElse {
-        <li class="next disabled">
-            <a>Next &rarr;</a>
-        </li>
-        }
-    </ul>
-</div>
+    <div id="pagination" class="pagination">
+        <ul>
+            @currentPage.prev.map { page =>
+                <li class="prev">
+                    <a href="@link(page)">&larr; Previous</a>
+                </li>
+            }.getOrElse {
+                <li class="prev disabled">
+                    <a>&larr; Previous</a>
+                </li>
+            }
+                <li class="current">
+                    <a>Displaying @(currentPage.offset + 1) to @(currentPage.offset + currentPage.items.size) of @currentPage.total</a>
+                </li>
+            @currentPage.next.map { page =>
+                <li class="next">
+                    <a href="@link(page)">Next &rarr;</a>
+                </li>
+            }.getOrElse {
+                <li class="next disabled">
+                    <a>Next &rarr;</a>
+                </li>
+            }
+        </ul>
+    </div>
 }

@@ -31,4 +31,17 @@ class ColorsDAO @Inject()(protected val dbConfigProvider: DatabaseConfigProvider
 
     db.run(query.result.map(rows => rows.map { case (code, name) => (code, name) }))
   }
+
+  def exists(code : String) : Future[Boolean] =
+    db.run(colors.filter(c => c.code === code).exists.result)
+
+  def findIdbyCode(code: String): Future[Long] = {
+    val query = colors.filter(c => c.code.toLowerCase === code.toLowerCase)
+    db.run(
+      query
+        .result
+        .filter(_.nonEmpty)
+        .map(row => row.map (c => c.id).min)
+    )
+  }
 }

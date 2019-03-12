@@ -1,10 +1,12 @@
-@(noteForm: Form[NoteWithTypes], types: Seq[(String, String, String)])(implicit messages: Messages, request: RequestHeader)
+@(noteForm: Form[NoteWithTypes], types: Seq[(String, String, String)])(implicit messages: Messages, request: RequestHeader, flash: play.api.mvc.Flash)
 
 @import helper._
 
 @implicitFieldConstructor = @{ FieldConstructor(twitterBootstrapInput.f) }
 
 @main {
+
+<span>@flash.get("message")</span>
 
 <h1>Add a note</h1>
 

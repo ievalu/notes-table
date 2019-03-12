@@ -1,4 +1,4 @@
-@(currentPage: Page[(Note, Color)], currentOrderBy: Int)(implicit request: play.api.mvc.RequestHeader, flash: play.api.mvc.Flash, messages: Messages)
+@(currentPage: Page[Note], currentOrderBy: Int)(implicit request: play.api.mvc.RequestHeader, flash: play.api.mvc.Flash, messages: Messages)
 
 @****************************************
 * Helper generating navigation links    *
@@ -35,11 +35,11 @@
         <tbody>
 
             @currentPage.items.map {
-                case (note, color) => {
+                case note => {
                 <tr>
                     <td>@note.text</td>
-                    <td style = "background-color: @color.value">
-                        @color.text
+                    <td style = "background-color: @note.color">
+                        @note.color
                     </td>
                 </tr>
                 }

@@ -20,9 +20,13 @@ case class Computer(
   discontinued: Option[LocalDate] = None,
   companyId: Option[Long] = None)
 
-case class Note (id: Long, text: String, color: Long)
+case class Note (id: Long, text: String, color: String, fileName: Option[String])
 
-case class NoteWithTypes (text: String, types: Seq[String])
+case class NoteForm (text: String, color: String)
+
+case class EditNoteForm (text: String, types: Option[Seq[String]], deleteFile: Boolean)
+
+case class NoteWithTypes (text: String, types: Option[Seq[String]])
 
 case class Color(
   id: Long,
