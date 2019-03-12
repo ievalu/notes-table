@@ -236,7 +236,7 @@ class Application @Inject()(companiesDao:CompaniesDAO, computersDao:ComputersDAO
     notesDao.findFileNameById(noteId).map { no =>
       no match {
         case Some(n) => Ok.sendFile(
-          content = new java.io.File(s"C:/Users/ieva.lubyte/Desktop/uploaded-images/$noteId"),
+          content = new java.io.File(configuration.underlying.getString("pathForUploadedFiles") + noteId.toString),
           fileName = _ => n)
         case None => BadRequest("No such file")
       }
