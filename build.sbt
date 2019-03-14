@@ -21,3 +21,8 @@ libraryDependencies ++= Seq(
   "com.github.tminglei" %% "slick-pg" % "0.17.2",
   "com.github.tminglei" %% "slick-pg_play-json" % "0.17.2"
 )
+
+libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.1" % Test
+
+libraryDependencies += "com.dimafeng" %% "testcontainers-scala" % "0.22.0" % Test
+libraryDependencies += "org.testcontainers" % "postgresql" % "1.10.1" % Test
