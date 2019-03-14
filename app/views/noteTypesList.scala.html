@@ -1,24 +1,36 @@
-@(currentPage: Page[(Note, Seq[(String, String)])], noteForm: Form[NoteWithTypes], typeOptions: Seq[(String, String, String)], currentOrderBy: Int, currentFilter: Seq[Long], currentTextFilter: String)(implicit request: play.api.mvc.RequestHeader, flash: play.api.mvc.Flash, messages: Messages)
+@(
+    currentPage: Page[(Note, Seq[(String, String)])],
+    noteForm: Form[NoteWithTypes],
+    typeOptions: Seq[(String, String, String)],
+    sortField: models.SortableFields.Value,
+    sortOrder: models.SortOrder.Value,
+    currentFilter: Seq[Long],
+    currentTextFilter: String
+)(implicit request: play.api.mvc.RequestHeader, flash: play.api.mvc.Flash, messages: Messages)
 
 @import helper._
 
 @****************************************
 * Helper generating navigation links    *
 ****************************************@
-@link(newPage: Int, newOrderBy: Option[Int] = None) = @{
-routes.Application.listNotesWithTypes(newPage, newOrderBy.map { orderBy =>
-if(orderBy == scala.math.abs(currentOrderBy)) -currentOrderBy else orderBy
-}.getOrElse(currentOrderBy), currentFilter.toList, currentTextFilter)
+@link(newPage: Int, newOrderBy: Option[models.SortableFields.Value], newOrder: models.SortOrder.Value) = @{
+    routes.Application.listNotesWithTypes(newPage, newOrderBy.map { orderBy =>
+        if(orderBy == sortField) sortField else orderBy
+    }
+    .getOrElse(sortField),
+    newOrder,
+    currentFilter.toList,
+    currentTextFilter)
 
 }
 
 @**********************************
 * Helper generating table headers *
 ***********************************@
-@header(orderBy: Int, title: String) = {
-<th class="col@orderBy header @if(scala.math.abs(currentOrderBy) == orderBy) { @{if(currentOrderBy < 0) "headerSortDown" else "headerSortUp"} }">
-<a href="@link(0, Some(orderBy))">@title</a>
-</th>
+@header(orderBy: models.SortableFields.Value, order: models.SortOrder.Value, title: String) = {
+    <th class="col@orderBy header @if(sortField == orderBy) { @{if(order.toString == "desc") "headerSortDown" else "headerSortUp"} }">
+        <a href="@link(0, Some(orderBy), order)">@title</a>
+    </th>
 }
 
 @main {
@@ -43,22 +55,22 @@ if(orderBy == scala.math.abs(currentOrderBy)) -currentOrderBy else orderBy
 
     </div>
 
-    <table class="computers zebra-striped">
+    <table>
         <thead>
             <tr>
-                @header(2, "Note")
-                @header(3, "Types")
-                @header(4, "File")
-                @header(5, "Update/Delete")
+                @header(SortableFields.text, if(sortOrder.toString == "asc") SortOrder.desc else SortOrder.asc, "Note")
+                <th>Types</th>
+                @header(SortableFields.file, if(sortOrder.toString == "asc") SortOrder.desc else SortOrder.asc, "File")
+                <th>Update/Delete</th>
             </tr>
         </thead>
         <tbody>
 
         @currentPage.items.map {
             case (note, types) => {
-                <tr>
+                <tr style = "background-color: @note.color">
                     <td>@note.text</td>
-                    @if(types(0) == null) {
+                    @if(types == null) {
                         <td></td>
                     }else{
                         <td>
@@ -99,7 +111,7 @@ if(orderBy == scala.math.abs(currentOrderBy)) -currentOrderBy else orderBy
         <ul>
             @currentPage.prev.map { page =>
                 <li class="prev">
-                    <a href="@link(page)">&larr; Previous</a>
+                    <a href="@link(page, Option(sortField), sortOrder)">&larr; Previous</a>
                 </li>
             }.getOrElse {
                 <li class="prev disabled">
@@ -111,7 +123,7 @@ if(orderBy == scala.math.abs(currentOrderBy)) -currentOrderBy else orderBy
                 </li>
             @currentPage.next.map { page =>
                 <li class="next">
-                    <a href="@link(page)">Next &rarr;</a>
+                    <a href="@link(page, Option(sortField), sortOrder)">Next &rarr;</a>
                 </li>
             }.getOrElse {
                 <li class="next disabled">

@@ -1,4 +1,4 @@
-@(noteForm: Form[NoteWithTypes], types: Seq[(String, String, String)])(implicit messages: Messages, request: RequestHeader, flash: play.api.mvc.Flash)
+@(noteForm: Form[NoteWithTypes], types: Seq[(String, String, String)], colors: Seq[(String, String)])(implicit messages: Messages, request: RequestHeader, flash: play.api.mvc.Flash)
 
 @import helper._
 
@@ -18,6 +18,16 @@
 
     @select(noteForm("types"), Seq("1" -> "work", "2" -> "uni", "3" -> "home", "4" -> "friends"), 'multiple -> true)
 
+    <div>
+    <select id="basic-color-select">
+        @colors.map { case (code, name) =>
+            <option value="@code">@name</option>
+        }
+    </select>
+
+    Color: <input class="jscolor {hash:true}" value="noteForm("color")" name="color" id="color-picker">
+    </div>
+
     <input type="file" name="noteFile">
 
 </fieldset>
@@ -27,6 +37,7 @@
     <a href="@routes.Application.listNotesWithTypes()" class="btn">Cancel</a>
 </div>
 
+<script src="@routes.Assets.at("scripts/color.js")"></script>
 }
 
 }

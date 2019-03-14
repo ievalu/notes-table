@@ -19,13 +19,8 @@ POST    /computers/:id              controllers.Application.update(id:Long)
 # Delete a computer
 POST    /computers/:id/delete       controllers.Application.delete(id:Long)
 
-# Notes
-GET     /notes                      controllers.Application.listNotes(p:Int ?= 0, s:Int ?= 2)
-GET     /notes/new                  controllers.Application.createNote
-POST    /notes                      controllers.Application.saveNote
-
 # Notes with types
-GET     /note-types                 controllers.Application.listNotesWithTypes(p:Int ?= 0, s:Int ?= 2, f: List[Long] ?= List.empty, text: String ?= "")
+GET     /note-types                 controllers.Application.listNotesWithTypes(p:Int ?= 0, sortField: models.SortableFields.Value ?= models.SortableFields.text, sortOrder: models.SortOrder.Value ?= models.SortOrder.asc, f: List[Long] ?= List.empty, text: String ?= "")
 GET     /note-types/new             controllers.Application.createNoteWithType
 POST    /note-types                 controllers.Application.saveNoteWithType
 GET     /note-types/download/:id    controllers.Application.downloadFile(id: Long)

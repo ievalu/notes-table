@@ -1,12 +1,10 @@
-@(note: Note, noteForm: Form[EditNoteForm], types: Seq[(String, String, String)])(implicit messages: Messages, request: RequestHeader, flash: play.api.mvc.Flash)
+@(note: Note, noteForm: Form[EditNoteForm], types: Seq[(String, String, String)], colors: Seq[(String, String)])(implicit messages: Messages, request: RequestHeader, flash: play.api.mvc.Flash)
 
 @import helper._
 
 @implicitFieldConstructor = @{ FieldConstructor(twitterBootstrapInput.f) }
 
 @main {
-
-<script src="@routes.Assets.at("scripts/deleteBox.js")"></script>
 
     <span>@flash.get("message")</span>
 
@@ -24,16 +22,21 @@
 
             </div>
 
+            @inputText(
+                    noteForm("color"),
+                    'class -> "jscolor {hash:true}",
+                    'style -> "background-color: @note.color"
+            )
+
             @note.fileName.map{ n =>
                 @checkbox(noteForm("deleteFile"))
-                Current file:
-                <a href="@routes.Application.downloadFile(note.id)" download>
-                    @n
-                </a>
-            }.getOrElse {
-                <span></span>
+                    Current file:
+                    <a href="@routes.Application.downloadFile(note.id)" download>
+                        @n
+                    </a>
+                }.getOrElse {
+                    <span></span>
             }
-
             <input type="file" name="noteFile" id="file-input">
 
         </fieldset>
@@ -43,6 +46,7 @@
             <a href="@routes.Application.listNotesWithTypes()" class="btn">Cancel</a>
         </div>
 
+<script src="@routes.Assets.at("scripts/deleteBox.js")"></script>
     }
 
 }

@@ -30,8 +30,7 @@ class Application @Inject()(companiesDao:CompaniesDAO, computersDao:ComputersDAO
 
   /** This result directly redirect to the application home. */
   val Home = Redirect(routes.Application.list(0, 2, ""))
-  val NotesHome = Redirect(routes.Application.listNotes(0, 2))
-  val NoteWithTypesHome = Redirect(routes.Application.listNotesWithTypes(0, 2))
+  val NoteWithTypesHome = Redirect(routes.Application.listNotesWithTypes(0, SortableFields.text, SortOrder.asc))
 
   /** Describe the computer form (used in both edit and create screens). */
   val computerForm = Form(
@@ -52,13 +51,15 @@ class Application @Inject()(companiesDao:CompaniesDAO, computersDao:ComputersDAO
     mapping(
       "text" -> nonEmptyText,
       "types" -> optional(seq(nonEmptyText)),
+      "color" -> nonEmptyText,
       "deleteFile" -> boolean)(EditNoteForm.apply)(EditNoteForm.unapply)
   )
 
   val noteWithTypesForm = Form(
     mapping(
       "text" -> nonEmptyText,
-      "types" -> optional(seq(nonEmptyText)))(NoteWithTypes.apply)(NoteWithTypes.unapply)
+      "types" -> optional(seq(nonEmptyText)),
+    "color" -> nonEmptyText)(NoteWithTypes.apply)(NoteWithTypes.unapply)
   )
 
   // -- Actions
@@ -137,78 +138,43 @@ class Application @Inject()(companiesDao:CompaniesDAO, computersDao:ComputersDAO
     } yield Home.flashing("success" -> "Computer has been deleted")
   }
 
-  def listNotes(page: Int, orderBy: Int) = Action.async {
+  def listNotesWithTypes(page: Int, sortField: SortableFields.Value, sortOrder: SortOrder.Value, filter: List[Long], textFilter: String) = Action.async {
     implicit request =>
-      val notes = notesDao.list(page = page, orderBy = orderBy)
-      val result = notes.map(note => Ok(html.notesList(note, orderBy)))
-      result
-  }
-
-  def listNotesWithTypes(page: Int, orderBy: Int, filter: List[Long], textFilter: String) = Action.async {
-    implicit request =>
-      val notes = notesDao.findNotesWithTypes(page = page, orderBy = orderBy, filterSeq = filter, textFilter = ("%" + textFilter + "%"))
-      // val test = Await.result(notesDao.findNotesWithTypes(page = page, orderBy = orderBy, filterSeq = filter, textFilter = textFilter), Duration(1, TimeUnit.SECONDS))
+      val notes = notesDao.findNotesWithTypes(page = page, sortField = sortField, sortOrder = sortOrder, filterSeq = filter, textFilter = ("%" + textFilter + "%"))
+      val test = Await.result(notesDao.findNotesWithTypes(page = page, sortField = sortField, sortOrder = sortOrder, filterSeq = filter, textFilter = ("%" + textFilter + "%")), Duration(1, TimeUnit.SECONDS))
       val typeOptions = typesDao.options()
       val noteOption = for {
         note <- notes
         typeOption <- typeOptions
       } yield (note, typeOption)
-      val result = noteOption.map(t => Ok(html.noteTypesList(t._1, noteWithTypesForm, t._2, orderBy, filter, textFilter)))
+      val result = noteOption.map(t => Ok(html.noteTypesList(t._1, noteWithTypesForm, t._2, sortField, sortOrder, filter, textFilter)))
       result
   }
 
-  def createNote: Action[AnyContent] = Action.async { implicit rs =>
-    colorsDao.options().map(options => Ok(html.createNoteForm(noteForm, options)))
-  }
-
   def createNoteWithType: Action[AnyContent] = Action.async { implicit rs =>
-    typesDao.options().map(options => Ok(html.createNoteWithTypeForm(noteWithTypesForm, options)))
-  }
-
-  def saveNote = Action.async {
-    implicit request =>
-      noteForm.bindFromRequest.fold(
-        formWithErrors => colorsDao.options().map(options => BadRequest(html.createNoteForm(formWithErrors, options))),
-        note => {
-          for {
-            _ <- notesDao.insert(note)
-          } yield NotesHome.flashing("success" -> "Note has been created")
-        }
-      )
+    for {
+      typeOptions <- typesDao.options()
+      colorOptions <- colorsDao.options()
+    } yield Ok(html.createNoteWithTypeForm(noteWithTypesForm, typeOptions, colorOptions))
   }
 
   def saveNoteWithType = Action.async(parse.multipartFormData) {
     implicit request =>
-      /*val filledForm = noteWithTypesForm.bindFromRequest()
-
-      if (filledForm.hasErrors) {
-        typesDao.options().map(options => BadRequest(html.createNoteWithTypeForm(filledForm, options)))
-      }  else {
-        val resource = filledForm.get
-        val file = request.body.file("noteFile")
-          .map{ noteFile =>
-            val filename = Paths.get(noteFile.filename).getFileName
-            //val fileSize = noteFile.fileSize No such method!?
-            val contentType = noteFile.contentType
-
-            noteFile.ref.moveTo(Paths.get(configuration.underlying.getString("pathForUploadedFiles")), true)
-            for {
-              lastNoteId <- notesDao.insertNoteWithType(filledForm.  .text)
-              _ <- noteTypesDao.insert(lastNoteId, filledForm.types.map(value => value.toLong))
-            } yield NoteWithTypesHome.flashing("success" -> "Note has been created")
-          }
-      }*/
       noteWithTypesForm.bindFromRequest.fold(
-        formWithErrors => typesDao.options().map(options => BadRequest(html.createNoteWithTypeForm(formWithErrors, options))),
+        formWithErrors => {
+          for {
+            typeOptions <- typesDao.options()
+            colorOptions <- colorsDao.options()
+          } yield BadRequest(html.createNoteWithTypeForm(formWithErrors, typeOptions, colorOptions))
+        },
         note => {
           val file = request.body.file("noteFile")
-          file.filter(_.ref.path.toFile.length() > 0) match {
-            case Some(noteFile) => {
-              val fileName = Paths.get(noteFile.filename).getFileName
-              notesDao.insertNoteWithTypeAndFile(
-                note,
-                Some(
-                  (id: Long) => Future(
+          notesDao.insertNoteWithTypeAndFile(
+            note,
+            file.filter(_.ref.path.toFile.length() > 0).map {
+              noteFile =>
+                (id: Long) =>
+                  Future(
                     blocking {
                       noteFile.ref.moveFileTo(
                         Paths.get(configuration.underlying.getString("pathForUploadedFiles") + id.toString),
@@ -216,17 +182,12 @@ class Application @Inject()(companiesDao:CompaniesDAO, computersDao:ComputersDAO
                       )
                     }
                   )
-                ),
-                Some(fileName.toString)
-              )
+            },
+            file.filter(_.ref.path.toFile.length() > 0).map {
+              noteFile =>
+                Paths.get(noteFile.filename).getFileName.toString
             }
-            case None => {
-              notesDao.insertNoteWithTypeAndFile(
-                note,
-                None,
-              )
-            }
-          }
+          )
         }
       )
       Future(NoteWithTypesHome.flashing("success" -> "Note has been created"))
@@ -247,8 +208,8 @@ class Application @Inject()(companiesDao:CompaniesDAO, computersDao:ComputersDAO
     implicit request =>
       notesDao.archiveNote(noteId).map(nr =>
         nr match {
-          case 0 => BadRequest("Something went wrong")
-          case _ => Ok(s"$nr notes deleted")
+          case 0 => NoteWithTypesHome.flashing("message" -> "Something bad happened and note could not be deleted")
+          case _ => NoteWithTypesHome.flashing("message" -> "Note is deleted")
         })
   }
 
@@ -258,55 +219,56 @@ class Application @Inject()(companiesDao:CompaniesDAO, computersDao:ComputersDAO
         note <- notesDao.findById(noteId)
         labels <- typesDao.options()
         noteTypes <- notesDao.findNoteTypes(noteId)
-      } yield (note, noteTypes, labels)
+        colors <- colorsDao.options()
+      } yield (note, noteTypes, labels, colors)
 
       noteAndTypes.map {
-        case (note, noteTypes, labels) =>
+        case (note, noteTypes, labels, colors) =>
           note match {
             case Some(n) =>
               Ok(html.editNoteForm(
                 note.get,
-                editNoteForm.fill(EditNoteForm(n.text, Option(noteTypes.filter(!_.isEmpty).map(nto => nto.get.toString)), false)),
-                labels)
+                editNoteForm.fill(EditNoteForm(n.text, Option(noteTypes.filter(!_.isEmpty).map(nto => nto.get.toString)), n.color, false)),
+                labels,
+                colors)
               )
             case None => NotFound
           }
       }
   }
 
-  def updateNote(noteId: Long) = Action.async(parse.multipartFormData) {
-    implicit request =>
-      editNoteForm.bindFromRequest.fold(
-        formWithErrors => {
-          for {
-            options <- typesDao.options()
-            note <- notesDao.findById(noteId)
-            noteTypes <- notesDao.findNoteTypes(noteId)
-          } yield BadRequest(html.editNoteForm(note.get, formWithErrors, options))
-        },
-        receivedNote => {
-          val file = request.body.file("noteFile")
-          if (receivedNote.deleteFile) {
-            notesDao.updateNote(
-              noteId,
-              receivedNote,
-              Some(
-                (id: Long) => Future(
-                  blocking {
-                    FileUtils.deleteQuietly(new File(configuration.underlying.getString("pathForUploadedFiles") + id.toString))
-                  }
+  def updateNote(noteId: Long) =
+    Action.async(parse.multipartFormData) {
+      implicit request =>
+        editNoteForm.bindFromRequest.fold(
+          formWithErrors => {
+            for {
+              typeOptions <- typesDao.options()
+              colorOptions <- colorsDao.options()
+              note <- notesDao.findById(noteId)
+            } yield BadRequest(html.editNoteForm(note.get, formWithErrors, typeOptions, colorOptions))
+          },
+          receivedNote => {
+            val file = request.body.file("noteFile")
+            if (receivedNote.deleteFile) {
+              notesDao.updateNote(
+                noteId,
+                receivedNote,
+                Some(
+                  (id: Long) => Future(
+                    blocking {
+                      FileUtils.deleteQuietly(new File(configuration.underlying.getString("pathForUploadedFiles") + id.toString))
+                    }
+                  )
                 )
               )
-            )
-          } else {
-            file.filter(_.ref.path.toFile.length() > 0) match {
-              case Some(noteFile) => {
-                val fileName = Paths.get(noteFile.filename).getFileName
-                notesDao.updateNote(
-                  noteId,
-                  receivedNote,
-                  Some(
-                    (id: Long) => Future(
+            } else {
+              notesDao.updateNote(
+                noteId,
+                receivedNote,
+                file.filter(_.ref.path.toFile.length() > 0).map { noteFile =>
+                  (id: Long) =>
+                    Future(
                       blocking {
                         noteFile.ref.moveFileTo(
                           Paths.get(configuration.underlying.getString("pathForUploadedFiles") + id.toString),
@@ -314,24 +276,15 @@ class Application @Inject()(companiesDao:CompaniesDAO, computersDao:ComputersDAO
                         )
                       }
                     )
-                  ),
-                  Some(fileName.toString)
-                )
-              }
-              case None => {
-                for {
-                  n <- notesDao.findById(noteId)
-                } yield notesDao.updateNote(
-                  noteId,
-                  receivedNote,
-                  None,
-                  n.get.fileName
-                )
-              }
+                },
+                file.filter(_.ref.path.toFile.length() > 0).map {
+                  noteFile =>
+                    Paths.get(noteFile.filename).getFileName.toString
+                }
+              )
             }
           }
-        }
-      )
-      Future(NoteWithTypesHome.flashing("success" -> "Note has been created"))
+        )
+        Future(NoteWithTypesHome.flashing("success" -> "Note has been created"))
   }
 }
