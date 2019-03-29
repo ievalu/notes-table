@@ -1,94 +1,135 @@
-@(currentPage: Page[(Note, Seq[(String, String)])], noteForm: Form[NoteWithTypes], typeOptions: Seq[(String, String, String)], currentOrderBy: Int, currentFilter: Seq[Long], currentTextFilter: String)(implicit request: play.api.mvc.RequestHeader, flash: play.api.mvc.Flash, messages: Messages)
+@(
+    currentPage: Page[(Note, Seq[(String, String)])],
+    noteForm: Form[NoteWithTypes],
+    typeOptions: Seq[(String, String, String)],
+    sortField: models.SortableFields.Value,
+    sortOrder: models.SortOrder.Value,
+    currentFilter: Seq[Long],
+    currentTextFilter: String
+)(implicit request: play.api.mvc.RequestHeader, flash: play.api.mvc.Flash, messages: Messages)
 
 @import helper._
 
 @****************************************
 * Helper generating navigation links    *
 ****************************************@
-@link(newPage: Int, newOrderBy: Option[Int] = None) = @{
-routes.Application.listNotesWithTypes(newPage, newOrderBy.map { orderBy =>
-if(orderBy == scala.math.abs(currentOrderBy)) -currentOrderBy else orderBy
-}.getOrElse(currentOrderBy), currentFilter.toList, currentTextFilter)
+@link(newPage: Int, newOrderBy: Option[models.SortableFields.Value], newOrder: models.SortOrder.Value) = @{
+    routes.Application.listNotesWithTypes(newPage, newOrderBy.map { orderBy =>
+        if(orderBy == sortField) sortField else orderBy
+    }
+    .getOrElse(sortField),
+    newOrder,
+    currentFilter.toList,
+    currentTextFilter)
 
 }
 
 @**********************************
 * Helper generating table headers *
 ***********************************@
-@header(orderBy: Int, title: String) = {
-<th class="col@orderBy header @if(scala.math.abs(currentOrderBy) == orderBy) { @{if(currentOrderBy < 0) "headerSortDown" else "headerSortUp"} }">
-<a href="@link(0, Some(orderBy))">@title</a>
-</th>
+@header(orderBy: models.SortableFields.Value, order: models.SortOrder.Value, title: String) = {
+    <th class="col@orderBy header @if(sortField == orderBy) { @{if(order.toString == "desc") "headerSortDown" else "headerSortUp"} }">
+        <a href="@link(0, Some(orderBy), order)">@title</a>
+    </th>
 }
 
 @main {
 
-<div id="actions">
-    @helper.form(action=routes.Application.listNotesWithTypes()) {
-        <input type="search" id="searchbox" name="text" value="@currentTextFilter" placeholder="Filter by note text..."/>
-        <select name="f" size="4" multiple>
-            @typeOptions.map{ case (id, text, _) =>  {
-                <option value="@id" @if(currentFilter.contains(id.toLong)){selected} >@text</option>
-            }}
-        </select>
-        <input type="submit" id="searchsubmit" value="Filter" class="btn primary"/>
-    }
+    <span>@flash.get("message")</span>
 
-    <a class="btn success" id="add" href="@routes.Application.createNoteWithType()">Add a new note</a>
-</div>
+    <div id="actions">
+        @helper.form(action=routes.Application.listNotesWithTypes()) {
+            <input type="search" id="searchbox" name="text" value="@currentTextFilter" placeholder="Filter by note text..."/>
+            <select name="f" size="4" multiple>
+                @typeOptions.map{ case (id, text, _) =>  {
+                    <option value="@id" @if(currentFilter.contains(id.toLong)){selected} >@text</option>
+                }}
+            </select>
+            <input type="submit" id="searchsubmit" value="Filter" class="btn primary"/>
+        }
 
-<table class="computers zebra-striped">
-    <thead>
-    <tr>
-        @header(2, "Note")
-        @header(3, "Types")
-    </tr>
-    </thead>
-    <tbody>
+        <a class="btn success" id="add" href="@routes.Application.createNoteWithType()">Add a new note</a>
+    </div>
 
-    @currentPage.items.map {
-        case (note, types) => {
+    <div class="container">
+
+    </div>
+
+    <table>
+        <thead>
             <tr>
-                <td>@note.text</td>
-                @if(types(0) == null) {
-                    <td></td>
-                }else{
+                @header(SortableFields.text, if(sortOrder.toString == "asc") SortOrder.desc else SortOrder.asc, "Note")
+                <th>Types</th>
+                @header(SortableFields.file, if(sortOrder.toString == "asc") SortOrder.desc else SortOrder.asc, "File")
+                <th>Update/Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+
+        @currentPage.items.map {
+            case (note, types) => {
+                <tr style = "background-color: @note.color">
+                    <td>@note.text</td>
+                    @if(types == null) {
+                        <td></td>
+                    }else{
+                        <td>
+                            @for(t <- types) {
+                                <span style = "background-color: @t._2"> @t._1  </span>
+                            }
+                        </td>
+                    }
                     <td>
-                        @for(t <- types){
-                            <span style = "background-color: @t._2"> @t._1  </span>
+                        @note.fileName.map { n =>
+                            <a href="@routes.Application.downloadFile(note.id)" download>
+                                @n
+                            </a>
+                        }.getOrElse {
+                            <span></span>
                         }
                     </td>
-                }
-            </tr>
+                    <td>
+                        @form(routes.Application.archiveNote(note.id)) {
+                            <button type="submit" value="Archive note" style="background-color: transparent">
+                                <i class="fas fa-trash" style="padding: 5px"></i>
+                            </button>
+                        }
+                        @form(routes.Application.editNote(note.id)) {
+                            <button type="submit" value="Edit note" style="background-color: transparent">
+                                <i class="far fa-edit" style="padding: 5px"></i>
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
         }
-    }
 
-    </tbody>
-</table>
+        </tbody>
+    </table>
 
-<div id="pagination" class="pagination">
-    <ul>
-        @currentPage.prev.map { page =>
-        <li class="prev">
-            <a href="@link(page)">&larr; Previous</a>
-        </li>
-        }.getOrElse {
-        <li class="prev disabled">
-            <a>&larr; Previous</a>
-        </li>
-        }
-        <li class="current">
-            <a>Displaying @(currentPage.offset + 1) to @(currentPage.offset + currentPage.items.size) of @currentPage.total</a>
-        </li>
-        @currentPage.next.map { page =>
-        <li class="next">
-            <a href="@link(page)">Next &rarr;</a>
-        </li>
-        }.getOrElse {
-        <li class="next disabled">
-            <a>Next &rarr;</a>
-        </li>
-        }
-    </ul>
-</div>
+    <div id="pagination" class="pagination">
+        <ul>
+            @currentPage.prev.map { page =>
+                <li class="prev">
+                    <a href="@link(page, Option(sortField), sortOrder)">&larr; Previous</a>
+                </li>
+            }.getOrElse {
+                <li class="prev disabled">
+                    <a>&larr; Previous</a>
+                </li>
+            }
+                <li class="current">
+                    <a>Displaying @(currentPage.offset + 1) to @(currentPage.offset + currentPage.items.size) of @currentPage.total</a>
+                </li>
+            @currentPage.next.map { page =>
+                <li class="next">
+                    <a href="@link(page, Option(sortField), sortOrder)">Next &rarr;</a>
+                </li>
+            }.getOrElse {
+                <li class="next disabled">
+                    <a>Next &rarr;</a>
+                </li>
+            }
+        </ul>
+    </div>
 }
